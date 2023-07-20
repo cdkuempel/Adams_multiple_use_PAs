@@ -1,0 +1,88 @@
+---
+title: "Untitled"
+author: "Caitie"
+date: "2022-09-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(here)
+library(tidyverse)
+library(raster)
+library(doParallel)
+```
+
+# Years
+
+Decide which years - do all years for now
+
+```{r}
+years<-2003:2013
+```
+
+Decide which stressors we would like to use - only using threats abatable through MPA establishment for now
+
+```{r}
+stressors_chi<-list.files(here("data/impacts"), pattern = ".tif", full.names = T)
+```
+
+
+```{r}
+registerDoParallel(4)
+foreach(year = years,.packages="dplyr") %dopar%{ # year=2013
+  
+#for(year in years){ # year=2013
+
+  stressors_yr <- grep(year, stressors_chi, value=TRUE)
+  print(length(stressors_yr))
+  
+  stress_stack <- raster::stack(stressors_yr)
+  
+  cumulative<-raster::calc(stress_stack, fun=sum, na.rm=TRUE)
+  
+  writeRaster(cumulative, here(paste0("data/cumulative/summed_raster_",year,".tif")), overwrite=TRUE, progress="text")
+  
+}
+```
+
+This checks to make sure that each year has the correct number of impacts.
+```{r}
+
+chi_check <- data.frame(year=years, length=c(NA))
+
+for(year in years){ # year=2013
+  stressors_yr <- grep(year, stressors_chi, value=TRUE)
+
+  chi_check$length[chi_check$year == year] <- length(stressors_yr)
+ 
+}
+
+## these should all have the same number and it should reflect the number of stressors
+chi_check
+```
+
+
+Final formatting of raster, masking the ocean area.
+```{r}
+dir_M<-here("data/cumulative/")
+
+ocean<-raster(here("data/ocean.tif"))
+
+for(year in years) { # year=2013
+  summed_rast <- raster::raster(here(paste0("data/cumulative/summed_raster_",year,".tif")))
+
+  raster::mask(summed_rast, ocean,
+                  filename=file.path(dir_M, sprintf("chi_%s.tif", year)),
+                  overwrite=TRUE)
+  print(year)
+}
+
+```
+
+
+
+
