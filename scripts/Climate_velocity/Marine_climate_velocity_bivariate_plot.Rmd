@@ -1,0 +1,82 @@
+---
+title: "Untitled"
+author: "Caitie"
+date: "2022-11-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tmap)
+library(tidyverse)
+library(sf)
+library(ggplot2)
+library(here)
+library(biscale)
+```
+
+```{r}
+data("World")
+world_spdf <- as(World, "Spatial")
+```
+
+```{r}
+dat<-st_read(here("data/climate_velocity/WDPA_marine_climate_velocity.shp")) 
+
+dat<-dat %>% 
+  rename(area_m2 = are_km2) %>% 
+  mutate(area_km2 = area_m2* 1e-6) %>% 
+  dplyr::select(WDPAID, PA_DEF, NAME, IUCN_CA, MARINE, STATUS, STATUS_, ClmVl__, area_km2)
+```
+
+```{r}
+test<-dat %>% 
+  filter(is.na(ClmVl__) == T)
+
+test2<-dat %>% 
+  filter(is.na(ClmVl__) == F)
+
+st_write(test, here("data/climate_velocity/Check_PAs.shp"), delete_layer = T)
+
+dat_narm<-dat %>% 
+  filter(is.na(ClmVl__) == F) %>% 
+  mutate(Clim_abs = abs(ClmVl__))
+```
+
+```{r}
+dat2<-bi_class(dat_narm, x = Clim_abs, y = area_km2, style = "quantile", dim = 3)
+```
+
+```{r}
+dat_pts<-st_centroid(dat2)
+
+dat_pts$bi_class<-factor(dat_pts$bi_class,
+                levels = c("1-3", "1-2", "1-1", "2-3", "2-2", "2-1", "3-3", "3-2", "3-1"))
+
+
+```
+
+
+```{r}
+map<-ggplot() +
+  geom_sf(data = World) +
+  geom_sf(data = dat_pts, mapping = aes(color = bi_class), size = 2, show.legend = FALSE) +
+  bi_scale_color(pal = "DkViolet", dim = 3) +
+  theme_void() 
+
+map
+```
+```{r}
+ggsave(here("figures/Marine_climate_velocity.png"), dpi = 600)
+```
+
+```{r}
+legend <- bi_legend(pal = "DkViolet", dim = 3, xlab = "Faster Velocity", ylab = "Larger area", size = 15)
+legend
+```
+```{r}
+ggsave(here("figures/Marine_climate_velocity_legend.png"), dpi = 600, width = 2, height = 2)
+```
