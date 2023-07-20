@@ -1,0 +1,315 @@
+---
+title: "Untitled"
+author: "Caitie"
+date: "2022-10-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+## set up
+  
+```{r setup, message=FALSE, warning=FALSE, verbose=FALSE}
+
+library(dplyr)
+library(tidyr)
+library(googleVis)
+library(raster)
+library(ggplot2)
+library(plotly)
+library(htmlwidgets)
+library(RColorBrewer)
+#library(ohicore)
+
+```
+
+## IUCN Category: CHI
+
+```{r}
+chi <- list.files(here("data/hfp/projected/"), full=TRUE,
+                  pattern="Proj")
+
+
+chi_stack <- stack(chi)
+```
+
+```{r}
+trend <- raster(here("data/trend/All_terrestrial_chi_slope.tif"))
+```
+
+
+```{r}
+wdpa<-st_read(here("data/wdpa/Clean_WDPA_Sept2022.shp"))
+
+
+
+
+#wdpa_diss<-wdpa_dissolve(sub_wdpa)
+```
+
+```{r}
+iucn<-unique(wdpa$IUCN_CA)
+
+
+all<-c()
+all_trend<-c()
+
+for(i in 1:length(iucn)){
+  print(iucn[[i]])
+  sub_wdpa<- wdpa %>% 
+   filter(STATUS_ <=2009, # Only use PAs that were established in 2009 or before
+         MARINE == "terrestrial",
+         PA_DEF != "OECM",
+         IUCN_CA == iucn[i]) 
+
+  wdpa_diss<-wdpa_dissolve(sub_wdpa)
+  
+  wdpa_ras<-fasterize::fasterize(wdpa_diss, chi_stack[[1]])
+  
+  writeRaster(wdpa_ras, here(paste0("data/wdpa/iucn/",iucn[i],"_hfp_raster.tif")), overwrite = T)
+  
+  chi_data <- zonal(chi_stack, wdpa_ras, fun="mean", progress="text", na.rm=TRUE)
+
+chi_data_df <- data.frame(chi_data) %>%
+  gather("pressure", "value", -1) %>%
+  rename("IUCN_num" = zone) %>%
+  mutate(IUCN_cat = as.character(iucn[i])) %>% 
+  mutate(year = as.numeric(substring(pressure, 10, 13))) %>%
+  mutate(pressure = "chi")
+
+trend_data <- zonal(trend, wdpa_ras, fun="mean", progress="text", na.rm=TRUE)
+
+trend_data_df <- data.frame(trend_data) %>%
+  rename("IUCN_num" = zone, "value"=mean) %>%
+  mutate(IUCN_cat = as.character(iucn[i])) %>% 
+  mutate(pressure = "chi_trend") 
+
+all<-rbind(all, chi_data_df)
+
+all_trend<-rbind(all_trend, trend_data_df)
+
+}
+```
+
+
+
+```{r}
+all<-all %>% 
+  mutate(pressure = "hfp",
+         year = ifelse(year == 9, 2009,
+                       ifelse(year == 10, 2010,
+                              ifelse(year == 11, 2011,
+                                     ifelse(year == 12, 2012,
+                                            ifelse(year == 13, 2013, NA))))))
+
+all_trend<-all_trend %>% 
+  mutate(pressure = "hfp_trend")
+
+write.csv(all, here("data/paper/IUCN_hfp.csv"))
+write.csv(all_trend, here("data/paper/IUCN_hfp_trend.csv"))
+```
+
+
+# Strict vs not strict
+
+```{r}
+wdpa2<-wdpa %>% 
+  mutate(Strict_class = ifelse(IUCN_CA %in% c("Ia", "Ib", "II", "III", "IV"), "Strict",
+                               ifelse(IUCN_CA %in% c("V", "VI"), "Not_strict", "Other")))
+```
+
+
+```{r}
+all<-c()
+all_trend<-c()
+
+strict<-unique(wdpa2$Strict_class)
+
+for(i in 2:length(strict)){
+  print(strict[[i]])
+  
+  sub_wdpa<- wdpa2 %>% 
+   filter(STATUS_ <=2009, # Only use PAs that were established in 2009 or before
+         MARINE == "terrestrial",
+         PA_DEF != "OECM", 
+         Strict_class== strict[i]) 
+
+  wdpa_diss<-wdpa_dissolve(sub_wdpa)
+  
+  wdpa_ras<-fasterize::fasterize(wdpa_diss, chi_stack[[1]])
+  
+  writeRaster(wdpa_ras, here(paste0("data/wdpa/iucn/",strict[i],"_hfp_raster.tif")), overwrite = T)
+  
+  chi_data <- zonal(chi_stack, wdpa_ras, fun="mean", progress="text", na.rm=TRUE)
+
+chi_data_df <- data.frame(chi_data) %>%
+  gather("pressure", "value", -1) %>%
+  rename("Strict_num" = zone) %>%
+  mutate(Strict_cat = as.character(strict[i])) %>% 
+  mutate(year = as.numeric(substring(pressure, 9, 12))) %>%
+  mutate(pressure = "hfp")
+
+trend_data <- zonal(trend, wdpa_ras, fun="mean", progress="text", na.rm=TRUE)
+
+trend_data_df <- data.frame(trend_data) %>%
+  rename("Strict_num" = zone, "value"=mean) %>%
+  mutate(Strict_cat = as.character(strict[i])) %>% 
+  mutate(pressure = "hfp_trend") 
+
+all<-rbind(all, chi_data_df)
+
+all_trend<-rbind(all_trend, trend_data_df)
+
+}
+```
+
+
+```{r}
+write.csv(all, here("data/paper/Strict_cat_IUCN_hfp.csv"))
+write.csv(all_trend, here("data/paper/Strict_cat_IUCN_hfp_trend.csv"))
+```
+
+
+
+# Country results
+
+```{r}
+eez<-st_read(here("data/eez_simple.shp")) %>% 
+  st_transform(., crs = st_crs(wdpa))
+
+
+eez_diss<-eez %>% 
+    group_by(rgn_key) %>% 
+    summarise(total_area_km2 = sum(area_km2, na.rm = T)) 
+
+eez_diss<-eez_diss%>% 
+  mutate(id = 1:nrow(eez_diss))
+
+eez_ras<-fasterize::fasterize(eez_diss, chi_stack[[1]], field = "id")
+```
+
+```{r}
+all_wdpa_ras<-raster(here("data/wdpa/WDPA_All_terrestrial_raster.tif"))
+wdpa_strict<-raster(here("data/wdpa/iucn/Strict_hfp_raster.tif"))
+wdpa_not_strict<-raster(here("data/wdpa/iucn/Not_strict_hfp_raster.tif"))
+wdpa_other<-raster(here("data/wdpa/iucn/Other_hfp_raster.tif"))
+```
+
+```{r}
+eez_wdpa<-eez_ras*all_wdpa_ras
+eez_strict<-eez_ras*wdpa_strict
+eez_not_strict<-eez_ras*wdpa_not_strict
+eez_other<-eez_ras*wdpa_other
+```
+
+
+```{r}
+chi_data_all <- zonal(chi_stack, eez_wdpa, fun="mean", progress="text", na.rm=TRUE)
+chi_data_strict <- zonal(chi_stack, eez_strict, fun="mean", progress="text", na.rm=TRUE)
+chi_data_not_strict <- zonal(chi_stack, eez_not_strict, fun="mean", progress="text", na.rm=TRUE)
+chi_data_other <- zonal(chi_stack, eez_other, fun="mean", progress="text", na.rm=TRUE)
+
+```
+
+
+
+
+```{r}
+chi_data_all_df <- data.frame(chi_data_all) %>%
+  gather("pressure", "value", -1) %>%
+  rename("id" = zone) %>%
+  mutate(year = as.numeric(substring(pressure, 9, 12))) %>%
+  mutate(pressure = "hfp") %>% 
+  mutate(MPA_type = "All")
+
+chi_data_strict_df <- data.frame(chi_data_strict) %>%
+  gather("pressure", "value", -1) %>%
+  rename("id" = zone) %>%
+  mutate(year = as.numeric(substring(pressure, 9, 12))) %>%
+  mutate(pressure = "hfp") %>% 
+  mutate(MPA_type = "Strict")
+
+chi_data_not_strict_df <- data.frame(chi_data_not_strict) %>%
+  gather("pressure", "value", -1) %>%
+  rename("id" = zone) %>%
+  mutate(year = as.numeric(substring(pressure, 9, 12))) %>%
+  mutate(pressure = "hfp") %>% 
+  mutate(MPA_type = "Not strict")
+
+chi_data_other_df <- data.frame(chi_data_other) %>%
+  gather("pressure", "value", -1) %>%
+  rename("id" = zone) %>%
+  mutate(year = as.numeric(substring(pressure, 9, 12))) %>%
+  mutate(pressure = "hfp") %>% 
+  mutate(MPA_type = "Other")
+
+all_chi<-rbind(chi_data_all_df, chi_data_strict_df, chi_data_not_strict_df, chi_data_other_df)
+
+all_chi2<-all_chi %>% 
+  pivot_wider(names_from = MPA_type, values_from = value) %>% 
+  rename("Not_strict" = 'Not strict')
+
+all_chi_eez<-full_join(eez_diss, all_chi2, by = "id")
+
+all_chi_eez_df<-as.data.frame(all_chi_eez) %>% 
+  dplyr::select(-geometry)
+
+write.csv(all_chi_eez_df, here("data/paper/Country_hfp_results.csv"))
+
+st_write(all_chi_eez, here("data/paper/Country_hfp_results.shp"), delete_layer = TRUE)
+```
+
+
+
+```{r}
+trend_data_all <- zonal(trend, eez_wdpa, fun="mean", progress="text", na.rm=TRUE)
+trend_data_strict <- zonal(trend, eez_strict, fun="mean", progress="text", na.rm=TRUE)
+trend_data_not_strict <- zonal(trend, eez_not_strict, fun="mean", progress="text", na.rm=TRUE)
+trend_data_other <- zonal(trend, eez_other, fun="mean", progress="text", na.rm=TRUE)
+```
+
+```{r}
+trend_data_all_df <- data.frame(trend_data_all) %>%
+  gather("pressure", "value", -1) %>%
+  rename("id" = zone) %>%
+  mutate(pressure = "trend") %>% 
+  mutate(MPA_type = "All")
+
+trend_data_strict_df <- data.frame(trend_data_strict) %>%
+  gather("pressure", "value", -1) %>%
+  rename("id" = zone) %>%
+  mutate(pressure = "trend") %>% 
+  mutate(MPA_type = "Strict")
+
+trend_data_not_strict_df <- data.frame(trend_data_not_strict) %>%
+  gather("pressure", "value", -1) %>%
+  rename("id" = zone) %>%
+  mutate(pressure = "trend") %>% 
+  mutate(MPA_type = "Not strict")
+
+trend_data_other_df <- data.frame(trend_data_other) %>%
+  gather("pressure", "value", -1) %>%
+  rename("id" = zone) %>%
+  mutate(pressure = "trend") %>% 
+  mutate(MPA_type = "Other")
+
+all_chi_trend<-rbind(trend_data_all_df, trend_data_strict_df, trend_data_not_strict_df, trend_data_other_df)
+
+all_chi_trend2<-all_chi_trend %>% 
+  pivot_wider(names_from = MPA_type, values_from = value) %>% 
+  rename("Not_strict" = 'Not strict')
+
+all_chi_trend_eez<-full_join(eez_diss, all_chi_trend2, by = "id")
+
+all_chi_trend_eez_df<-as.data.frame(all_chi_trend_eez) %>% 
+  dplyr::select(-geometry)
+
+write.csv(all_chi_trend_eez_df, here("data/paper/Country_hfp_trend_results.csv"))
+
+st_write(all_chi_trend_eez, here("data/paper/Country_hfp_trend_results.shp"), delete_layer = TRUE)
+```
+
+
