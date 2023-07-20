@@ -1,0 +1,236 @@
+---
+title: "Untitled"
+author: "Caitie"
+date: "2022-10-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(tmap)
+library(raster)
+library(sf)
+library(here)
+library(ggrepel)
+```
+
+
+```{r}
+cont<-read.csv(here("data/paper/Countries_by_continent.csv"))
+```
+
+
+```{r}
+strict_chi<-read.csv(here("data/paper/Strict_cat_IUCN_chi.csv"))
+strict_trend<-read.csv(here("data/paper/Strict_cat_IUCN_chi_trend.csv"))
+
+iucn_chi<-read.csv(here("data/paper/IUCN_chi.csv"))
+iucn_trend<-read.csv(here("data/paper/IUCN_chi_trend.csv"))
+
+iso3_chi<-read.csv(here("data/paper/Country_chi_results.csv")) %>% 
+  full_join(cont, by = c("rgn_key" = "ISO3"))
+iso3_trend<-read.csv(here("data/paper/Country_chi_trend_results.csv"))%>% 
+  full_join(cont, by = c("rgn_key" = "ISO3"))
+```
+
+```{r}
+strict_hfp<-read.csv(here("data/paper/Strict_cat_IUCN_hfp.csv"))
+strict_hfp_trend<-read.csv(here("data/paper/Strict_cat_IUCN_hfp_trend.csv"))
+
+iucn_hfp<-read.csv(here("data/paper/IUCN_hfp.csv"))
+iucn_hfp_trend<-read.csv(here("data/paper/IUCN_hfp_trend.csv"))
+
+iso3_hfp<-read.csv(here("data/paper/Country_hfp_results.csv")) %>% 
+  full_join(cont, by = c("rgn_key" = "ISO3"))
+iso3_hfp_trend<-read.csv(here("data/paper/Country_hfp_trend_results.csv"))%>% 
+  full_join(cont, by = c("rgn_key" = "ISO3"))
+```
+
+```{r}
+iucn_chi$IUCN_cat <- factor(iucn_chi$IUCN_cat, c("Ia", "Ib",  "II",  "III", "IV",  "V", "VI","Not Applicable", "Not Reported", "Not Assigned" ))
+
+iucn_chi<-iucn_chi %>% 
+  mutate(label = if_else(year == min(year), as.character(IUCN_cat), NA_character_))
+
+iucn_chi<-iucn_chi %>% 
+  mutate(Strict_cat = ifelse(IUCN_cat %in% c("Ia", "Ib",  "II",  "III", "IV"), "Strict",
+                             ifelse(IUCN_cat %in% c("V", "VI"), "Not strict", "Other")))
+
+iucn_chi_test<-iucn_chi %>% 
+  group_by(Strict_cat, year) %>% 
+  summarise(Total = sum(value, na.rm = T))
+```
+```{r}
+iucn_hfp$IUCN_cat <- factor(iucn_hfp$IUCN_cat, c("Ia", "Ib",  "II",  "III", "IV",  "V", "VI","Not Applicable", "Not Reported", "Not Assigned" ))
+
+iucn_hfp<-iucn_hfp %>% 
+  mutate(label = if_else(year == min(year), as.character(IUCN_cat), NA_character_))
+
+iucn_hfp<-iucn_hfp %>% 
+  mutate(Strict_cat = ifelse(IUCN_cat %in% c("Ia", "Ib",  "II",  "III", "IV"), "Strict",
+                             ifelse(IUCN_cat %in% c("V", "VI"), "Not strict", "Other")))
+
+iucn_hfp_test<-iucn_hfp %>% 
+  group_by(Strict_cat, year) %>% 
+  summarise(Total = sum(value, na.rm = T))
+```
+
+# CHI plots
+```{r}
+ggplot(iucn_chi, aes(x = year, y = value, group = IUCN_cat, color = IUCN_cat))+
+  geom_line() +
+  theme_bw() +
+  xlab("Year") +
+  ylab("Cumulative abatable impact") +
+  xlim(c(2009,2013)) +
+  labs(color = "") +
+  scale_colour_viridis_d(direction = -1) 
+  #geom_label_repel(aes(label = label),
+  #                nudge_x = -0.25,
+   #               na.rm = TRUE,
+    #              label.size = 0.25) +
+  #theme(legend.position = "none")
+```
+
+```{r}
+ggsave(here("figures/CHI_2009_2013_IUCN_categories.png"), dpi = 300, width = 5, height = 4)
+```
+
+```{r}
+strict_chi<-strict_chi %>% 
+  mutate(Strict_cat = ifelse(Strict_cat == "Not_strict", "Not strict", as.character(Strict_cat)))
+
+strict_chi$Strict_cat <- factor(strict_chi$Strict_cat, c("Strict", "Not strict", "Other"))
+
+ggplot(strict_chi, aes(x = year, y = value, color = Strict_cat))+
+  geom_line() +
+  theme_bw() +
+  xlab("Year") +
+  ylab("Cumulative abatable impact") +
+  labs(color = "IUCN\ncategory") +
+  scale_colour_viridis_d("", direction = -1)
+  
+```
+```{r}
+ggsave(here("figures/CHI_2009_2013_Strict_categories.png"), dpi = 300, width = 5, height = 4)
+```
+
+
+```{r}
+pos_trend<-iso3_trend %>% 
+  filter(All>0)
+
+pos_iso3<-unique(pos_trend$rgn_key)
+
+pos<-iso3_chi %>% 
+  dplyr::select(rgn_key, year, All, Continent) %>% 
+  filter(!is.na(All) == T,
+         rgn_key %in% pos_iso3)
+
+neg<-iso3_chi %>% 
+  dplyr::select(rgn_key, year, All, Continent) %>% 
+  filter(!is.na(All) == T,
+         !rgn_key %in% pos_iso3)
+```
+
+```{r}
+ggplot(pos, aes(x = year, y = All, color = rgn_key))+
+  geom_line() +
+  theme_bw() +
+  xlab("Year") +
+  ylab("Cumulative abatable impact") +
+  facet_wrap(~Continent, scales = "free") +
+  theme(legend.position = "none")
+```
+```{r}
+ggplot(neg, aes(x = year, y = All, color = rgn_key))+
+  geom_line() +
+  theme_bw() +
+  xlab("Year") +
+  ylab("Cumulative abatable impact") +
+  facet_wrap(~Continent, scales = "free") +
+  theme(legend.position = "none")
+```
+
+# HFP plots
+
+```{r}
+ggplot(iucn_hfp, aes(x = year, y = value, group = IUCN_cat, color = IUCN_cat))+
+  geom_line() +
+  theme_bw() +
+  xlab("Year") +
+  ylab("Human footprint") +
+  xlim(c(2009,2013)) +
+  labs(color = "") +
+  scale_colour_viridis_d(direction = -1) 
+  #geom_label_repel(aes(label = label),
+  #                nudge_x = -0.25,
+   #               na.rm = TRUE,
+    #              label.size = 0.25) +
+  #theme(legend.position = "none")
+```
+
+```{r}
+ggsave(here("figures/HFP_2009_2013_IUCN_categories.png"), dpi = 300, width = 5, height = 4)
+```
+
+```{r}
+strict_hfp<-strict_hfp %>% 
+  mutate(Strict_cat = ifelse(Strict_cat == "Not_strict", "Not strict", as.character(Strict_cat)))
+
+strict_hfp$Strict_cat <- factor(strict_hfp$Strict_cat, c("Strict", "Not strict", "Other"))
+
+ggplot(strict_hfp, aes(x = year, y = value, color = Strict_cat))+
+  geom_line() +
+  theme_bw() +
+  xlab("Year") +
+  ylab("Human Footprint") +
+  labs(color = "IUCN\ncategory") +
+  scale_colour_viridis_d("", direction = -1)
+  
+```
+```{r}
+ggsave(here("figures/HFP_2009_2013_Strict_categories.png"), dpi = 300, width = 5, height = 4)
+```
+
+
+```{r}
+pos_hfp_trend<-iso3_hfp_trend %>% 
+  filter(All>0)
+
+pos_hfp_iso3<-unique(pos_hfp_trend$rgn_key)
+
+pos_hfp<-iso3_hfp %>% 
+  dplyr::select(rgn_key, year, All, Continent) %>% 
+  filter(!is.na(All) == T,
+         rgn_key %in% pos_hfp_iso3)
+
+neg_hfp<-iso3_hfp %>% 
+  dplyr::select(rgn_key, year, All, Continent) %>% 
+  filter(!is.na(All) == T,
+         !rgn_key %in% pos_hfp_iso3)
+```
+
+```{r}
+ggplot(pos_hfp, aes(x = year, y = All, color = rgn_key))+
+  geom_line() +
+  theme_bw() +
+  xlab("Year") +
+  ylab("Human footprint") +
+  facet_wrap(~Continent, scales = "free") +
+  theme(legend.position = "none")
+```
+```{r}
+ggplot(neg_hfp, aes(x = year, y = All, color = rgn_key))+
+  geom_line() +
+  theme_bw() +
+  xlab("Year") +
+  ylab("Human footprint") +
+  facet_wrap(~Continent, scales = "free") +
+  theme(legend.position = "none")
+```

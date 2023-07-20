@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Libraries
 ```{r}
 library(here)
 library(tidyverse)
@@ -18,8 +19,6 @@ library(tidyverse)
 # Download stressor info
 
 Download all non-climate related stressors
-
-
 
 ```{r shipping}
 
@@ -39,75 +38,6 @@ shipping_urls<-c("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%
 )
 ```
 
-```{r lights}
-# https://knb.ecoinformatics.org/view/doi%3A10.5063%2FF1SQ8XQF
-
-#lights_urls<-c("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A4f7d8159-cf0e-4844-8620-feb4a34d2c4f", #2013
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3Ac8a7a0ea-4ceb-4c58-bbb7-8a4b4a039b57", #2012
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3Ae42610e1-c7c1-4d94-8186-e2cc3968d42c", #2011
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A96b34429-a0e3-4ffd-9023-4f591ca7d0d1", #2010
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A8ea974e3-f564-4ec5-970f-cefc6f79408f", #2009
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A8478ffe9-831e-437c-9c9f-2311f7e78027", #2008
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A68d15c54-96e8-4525-9a3c-d14d5fea1067", #2007
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A28edca92-b74c-462c-8bff-85b9b6fab180", #2006
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A225774c9-6109-43c9-9195-bfaeeab65b57", #2005
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A68ed9bef-1dac-44e8-bea5-c64c53f926bc", #2004
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3Add9c8abb-92cf-4d10-933a-010dfa6676b0" #2003
-#)
-```
-
-```{r direct human}
-# https://knb.ecoinformatics.org/view/doi%3A10.5063%2FF1XG9PGM
-
-#direct_human_urls<-c("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3Aaee62fd9-5c58-4c74-998a-40e85f3fcecc#", #2013
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3Aa68d6776-9080-4dd8-a906-8ee65b89f5a4", #2012
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A74236828-47f8-4f52-ad08-be21deb1564f", #2011
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A54202a28-cc6b-44c1-9d50-74643117bade", #2010
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3Ae818ab2b-e1b7-4d1b-aeb3-63dde79271f0", #2009
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A8bca1389-2298-4ed5-a084-8947d268cab7", #2008
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A7b00965c-586d-4d04-9832-b38b45bcf218", #2007
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3Aa454d4fa-679f-46de-9e22-8f3d65c79f6a", #2006
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A99fceeef-ac8a-4ec7-89a1-c86cb84d0b04", #2005
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A5d928e50-fc01-4de0-9443-40751d4bc4ad", #2004
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3Aa89bc7e8-a64b-4e52-a734-0759489cb410" #2003
-#)
-```
-
-```{r organic chemicals}
-
-#https://knb.ecoinformatics.org/view/doi%3A10.5063%2FF12805ZF
-
-#org_chem_urls<-c("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3Ad64e3424-6dd7-441b-8f18-f28ffa16fb61", ##2013
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3Acbaaa932-c60d-4659-9389-cac8eab57e9a", #2012
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A452ff3c6-b1e3-4735-8ca5-9623e03fbbaa", #2011
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3Aeb1e8364-7b9f-405d-901b-12a3a8f867af", #2010
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3Ad1b96520-9376-46d9-a665-42f97e4a2dac", #2009
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A1ab68fab-f9ce-4ae1-bf5b-a1219f97bc56", #2008
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A6be19b92-acd2-499f-ae31-60a54354b07e", #2007
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3Ae1521731-46ad-4bf7-a801-aedf90e7a29b", #2006
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A7bb3477f-3186-4d8d-ada6-388a73244cb6", #2005
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A2c591cee-4358-4c54-9d82-1096653dd092", #2004
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3Ad09b3772-53ea-49a6-b8b9-a3e52605449a" #2003
-#)
-```
-
-
-```{r nutrient pollution}
-
-#nutri_urls<-c("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A83b433ac-a0db-4b13-af47-922fb0987cc8", #2013
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A73a19c1a-7f0f-41c0-bea9-dd344328f6a8", #2012
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A1f48c424-d56f-4932-883a-be2f33dfd0df", #2011
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A798f2e5a-851b-41a6-91e7-2c86c929b2ab", #2010
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3Ad3d027fa-7d4b-470b-afe1-45c993dfacdb", #2009
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A7aaa7044-735d-4bb9-9071-4a7db9a5ed8e", #2008
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A92b71dee-561b-4ab1-8e40-41f34f532a21", #2007
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3Aa9a320cc-b1a7-4057-a0a6-93bff1e5de88", #2006
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A7c76fc19-73b1-463a-a1c6-c9c071ddbf64", #2005
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A2eece6c3-abc6-4864-abbe-8c6bf7a34ed1", #2004
-#"https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid%3A8e69cd2a-c105-40d2-9ec1-02fea8665263" #2003
-#)
-
-```
 
 ```{r pelagic low bycatch}
 
@@ -210,86 +140,61 @@ artisinal_urls<-c("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/urn%3Auuid
 )
 ```
 
+# Loop through URLs to download files
+
+Note that sometimes the loops stall and you need to run one at a time or download layers from KNB manually
+
 ```{r}
 years<-c(2013, 2012, 2011, 2010, 2009,2008,2007,2006,2005,2004,2003)
 ```
 
 ```{r}
-
 for(i in 1:length(shipping_urls)){
-destfile<-here(paste0("data/impacts/Shipping_impact_",years[i],".tif"))
+destfile<-here(paste0("raw_data/Marine_stressors/Shipping_impact_",years[i],".tif"))
 download.file(shipping_urls[[i]], destfile)
 }
 
 ```
 
-```{r}
-#for(i in 1:length(lights_urls)){
-#destfile<-here(paste0("data/impacts/Lights_impact_",years[i],".tif"))
-#download.file(lights_urls[[i]], destfile)
-#}
-```
-
-```{r}
-#for(i in 1:length(direct_human_urls)){
-#destfile<-here(paste0("data/impacts/Direct_human_impact_",years[i],".tif"))
-#download.file(direct_human_urls[[i]], destfile)
-#}
-```
-
-```{r}
-#for(i in 1:length(org_chem_urls)){
-#destfile<-here(paste0("data/impacts/Org_chem_impact_",years[i],".tif"))
-#download.file(org_chem_urls[[i]], destfile)
-#}
-```
-
-
-```{r}
-#for(i in 1:length(nutri_urls)){
-#destfile<-here(paste0("data/impacts/Nutrient_impact_",years[i],".tif"))
-#download.file(nutri_urls[[i]], destfile)
-#}
-```
 
 ```{r}
 for(i in 1:length(pelagic_low_urls)){
-destfile<-here(paste0("data/impacts/Pelagic_low_impact_",years[i],".tif"))
+destfile<-here(paste0("raw_data/Marine_stressors/Pelagic_low_impact_",years[i],".tif"))
 download.file(pelagic_low_urls[[i]], destfile)
 }
 ```
 
 ```{r}
 for(i in 1:length(pelagic_high_urls)){
-destfile<-here(paste0("data/impacts/Pelagic_high_impact_",years[i],".tif"))
+destfile<-here(paste0("raw_data/Marine_stressors/Pelagic_high_impact_",years[i],".tif"))
 download.file(pelagic_high_urls[[i]], destfile)
 }
 ```
 
 ```{r}
 for(i in 1:length(demersal_non_low_urls)){
-destfile<-here(paste0("data/impacts/Demersal_non_low_impact_",years[i],".tif"))
+destfile<-here(paste0("raw_data/Marine_stressors/Demersal_non_low_impact_",years[i],".tif"))
 download.file(demersal_non_low_urls[[i]], destfile)
 }
 ```
 
 ```{r}
 for(i in 1:length(demersal_non_high_urls)){
-destfile<-here(paste0("data/impacts/Demersal_non_high_impact_",years[i],".tif"))
-download.file(demersal_non_high_urls[[i]], destfile)
+destfile<-here(paste0("raw_data/Marine_stressors/Demersal_non_high_impact_",years[i],".tif"))
+download.file(demersal_non_high_urls[i], destfile)
 }
 ```
 
 ```{r}
 for(i in 1:length(demersal_destructive_urls)){
-destfile<-here(paste0("data/impacts/Demersal_destructive_impact_",years[i],".tif"))
-download.file(demersal_destructive_urls[[i]], destfile)
+destfile<-here(paste0("raw_data/Marine_stressors/Demersal_destructive_impact_",years[i],".tif"))
+download.file(demersal_destructive_urls[i], destfile)
 }
 ```
 
 ```{r}
 for(i in 1:length(artisinal_urls)){
-destfile<-here(paste0("data/impacts/Artisinal_impact_",years[i],".tif"))
+destfile<-here(paste0("raw_data/Marine_stressors/Artisinal_impact_",years[i],".tif"))
 download.file(artisinal_urls[[i]], destfile)
 }
 ```

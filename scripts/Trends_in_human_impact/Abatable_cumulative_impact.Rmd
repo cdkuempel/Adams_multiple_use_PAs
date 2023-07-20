@@ -9,6 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Libraries
+
 ```{r}
 library(here)
 library(tidyverse)
@@ -27,7 +29,7 @@ years<-2003:2013
 Decide which stressors we would like to use - only using threats abatable through MPA establishment for now
 
 ```{r}
-stressors_chi<-list.files(here("data/impacts"), pattern = ".tif", full.names = T)
+stressors_chi<-list.files(here("raw_data/Marine_stressors"), pattern = ".tif", full.names = T)
 ```
 
 
@@ -44,7 +46,7 @@ foreach(year = years,.packages="dplyr") %dopar%{ # year=2013
   
   cumulative<-raster::calc(stress_stack, fun=sum, na.rm=TRUE)
   
-  writeRaster(cumulative, here(paste0("data/cumulative/summed_raster_",year,".tif")), overwrite=TRUE, progress="text")
+  writeRaster(cumulative, here(paste0("output_data/Marine_stressors/summed_raster_",year,".tif")), overwrite=TRUE, progress="text")
   
 }
 ```
@@ -68,12 +70,12 @@ chi_check
 
 Final formatting of raster, masking the ocean area.
 ```{r}
-dir_M<-here("data/cumulative/")
+dir_M<-here("output_data/Marine_stressors/")
 
-ocean<-raster(here("data/ocean.tif"))
+ocean<-raster(here("raw_data/Boundaries/ocean.tif"))
 
 for(year in years) { # year=2013
-  summed_rast <- raster::raster(here(paste0("data/cumulative/summed_raster_",year,".tif")))
+  summed_rast <- raster::raster(here(paste0("output_data/Marine_stressors/summed_raster_",year,".tif")))
 
   raster::mask(summed_rast, ocean,
                   filename=file.path(dir_M, sprintf("chi_%s.tif", year)),

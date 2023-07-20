@@ -1,0 +1,250 @@
+---
+title: "Untitled"
+author: "Caitie"
+date: "2022-11-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(sf)
+library(raster)
+library(tidyverse)
+library(here)
+library(tidyr)
+library(dplyr)
+library(RColorBrewer)
+library(rgdal)
+library(doParallel)
+library(foreach)
+library(gstat)
+library(stringr)
+library(wdpar)
+library(gdalUtils)
+library(fasterize)
+```
+
+# WDPA data
+
+```{r}
+wdpa<-st_read(here("data/wdpa/Clean_WDPA_Sept2022.shp")) 
+
+sub_wdpa<- wdpa %>% 
+  filter(STATUS_ <=2009, # Only use PAs that were established in 2009 or before
+         MARINE == "terrestrial",# Only terrestrial PAs
+         PA_DEF != "OECM") 
+
+#table(sub_wdpa$IUCN_CA, sub_wdpa$STATUS_)
+
+#test<-sub_wdpa %>% 
+#  as.data.frame() %>% 
+#  dplyr::select(-geometry)
+
+wdpa_diss<-wdpa_dissolve(sub_wdpa)
+```
+
+# Reprojecting CHI
+```{r ref point, eval=FALSE}
+
+dir_M<-here("data/hfp")
+
+chi   <- list.files(path = dir_M, pattern='.tif$', full.names=TRUE)
+
+for(i in 2:length(chi)){
+  print(i)
+  name<-substr(chi[i], start = 44, stop = 50)
+  endfile<-here(paste0("data/hfp/projected/Proj_", name,".tif"))
+  gdalwarp(srcfile = chi[i], dstfile = endfile, t_srs = "+proj=cea +lat_ts=30 +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +type=crs")
+  
+}
+
+````
+```{r}
+chi_proj<-list.files(path = here("data/hfp/projected"), pattern='.tif$', full.names=TRUE)
+chi_stack<-stack(chi_proj)
+```
+
+
+```{r message = FALSE}
+wdpa_ras<-fasterize(wdpa_diss, chi_stack[[1]])
+writeRaster(wdpa_ras, here("data/wdpa/WDPA_All_terrestrial_raster.tif"), overwrite = TRUE)
+#wdpa_ras<-raster(here("data/wdpa/WDPA_All_marine_raster.tif"))
+```
+
+```{r}
+wdpa_chi<-wdpa_ras * chi_stack
+
+writeRaster(wdpa_chi, here("data/wdpa/WDPA_All_terrestrial_hfp_raster.tif"), overwrite =TRUE)
+
+#wdpa_chi<-raster(here("data/wdpa/WDPA_All_marine_chi_raster.tif"))
+```
+
+# Calculate slope, intercept
+
+A regression model will be applied to each cell across all years of data, and the slope and intercept will be used to estimate 2013. 
+
+```{r estimate_2013, eval=FALSE}
+
+#years <-   as.numeric(substr(basename(chi), 5, 8))
+
+years<-2009:2013
+
+
+# function to split raster
+SplitRas <- function(raster,ppside,save,plot){
+  h        <- ceiling(ncol(raster)/ppside)
+  v        <- ceiling(nrow(raster)/ppside)
+  agg      <- aggregate(raster[[1]],fact=c(h,v), fun=max, na.rm = T)
+   
+  agg[]    <- 1:ncell(agg)
+  agg_poly <- rasterToPolygons(agg)
+  names(agg_poly) <- "polis"
+  
+  r_list <- list()
+  for(i in 1:ncell(agg)){ # i=1
+    e1          <- extent(agg_poly[agg_poly$polis==i,])
+    crop(raster, e1, filename = file.path(dir_M, "tmp", paste("All_terrestrial_SplitRas",i,".R", sep="")), 
+         overwrite=TRUE)
+  }
+  return(r_list)
+}
+
+# this will split raster into 9 blocks
+SplitRas(raster=wdpa_chi, ppside=3)
+
+# check one to make sure all is well:
+tmp <- stack(file.path(dir_M, '/tmp/All_terrestrial_SplitRas1'))
+
+plot(tmp[[1]])
+          
+
+# need to run and get error
+# https://stat.ethz.ch/pipermail/r-sig-geo/2013-November/019856.html
+
+
+```
+
+```{r}
+funb <- function(x) {
+if (all(is.na(x))) {
+return(cbind(NA,NA))
+}
+m <- lm(x ~ years)
+s  <- summary(m)
+slope <- s$coefficients[2,1]
+se <- s$coefficients[2,2]
+return(cbind(slope, se))
+}
+
+# potential alternative
+# ## much reduced regression model; [2] is to get the slope
+# quickfun <- function(y) (invXtX %*% y)[2]
+# x4 <- calc(s, quickfun) 
+
+
+registerDoParallel(2)
+
+foreach(i = 2:3) %dopar%{ #i=1
+
+rx <- raster::stack(file.path(dir_M, "/tmp", 
+                        sprintf("All_terrestrial_SplitRas%s", i)))  
+  
+rr<-raster::calc(rx, fun=funb, filename = file.path(dir_M, "/tmp",sprintf("All_terrestrial_SplitRas%s_lm", i)), overwrite=TRUE)
+}
+
+
+
+```
+
+```{r}
+# combine tiles
+list2 <- list()
+for(i in 1:9){ #i=1
+  rx <- stack(file.path(dir_M, "tmp", 
+                        sprintf("All_marine_SplitRas%s_lm", i)))
+  list2[[i]] <- rx
+}
+
+list2$fun   <- max
+list2$na.rm <- TRUE
+rast.mosaic <- do.call(mosaic, list2)
+
+writeRaster(rast.mosaic[[1]], file.path(here('data/trend/All_marine_chi_slope.tif')), overwrite=TRUE)
+writeRaster(rast.mosaic[[2]], file.path(here('data/trend/All_marine_chi_se.tif')), overwrite=TRUE)
+
+
+```
+
+
+# View rasters
+```{r}
+
+se <- raster(file.path(here("data/trend/All_marine_chi_se.tif")))
+plot(se, axes=FALSE)
+slope <- raster(file.path(here("data/trend/All_marine_chi_slope.tif")))
+plot(slope, axes=FALSE)
+
+```
+
+# Calculate upper and lower 95% CI rasters
+
+```{r}
+t_stat <- qt(0.975, 5-2) #Check this? use to be 11-2. Think needs to be 5 for number of years
+
+# upper limit
+s <- stack(slope, se)
+overlay(s, fun=function(x,y){x + y*t_stat}, 
+                    filename = here("data/trend/All_marine_chi_upper_ci.tif"), overwrite=TRUE, progress="text")
+
+upper_ci <- raster(here("data/trend/All_marine_chi_upper_ci.tif"))
+
+#plot(upper_ci, axes=FALSE)
+
+# lower limit
+overlay(s, fun=function(x,y) x - y*t_stat, 
+                    filename = here('data/trend/All_marine_chi_lower_ci.tif'), overwrite=TRUE, progress="text")
+lower_ci <- raster(here('data/trend/All_marine_chi_lower_ci.tif'))
+
+#plot(lower_ci, col=cols, axes=FALSE)
+
+```
+
+# Raster manipulation
+```{r}
+
+### replace negative values with -1 and positive values with +1
+# upper
+upper_ci <- raster(here("data/trend/All_marine_chi_upper_ci.tif"))
+reclassify(upper_ci, c(-Inf,0,-1, 0,Inf,1), 
+           filename = here("data/trend/All_marine_chi_upper_ci_convert.tif"), overwrite=TRUE, progress="text")
+
+upper_ci_class <- raster(here("data/trend/All_marine_chi_upper_ci_convert.tif"))
+#plot(upper_ci_class, axes=FALSE)
+
+# lower
+lower_ci <- raster(here('data/trend/All_marine_chi_lower_ci.tif'))
+reclassify(lower_ci, c(-Inf,0,-1, 0,Inf,1), 
+           filename = here('data/trend/All_marine_chi_lower_ci_convert.tif'), overwrite=TRUE, progress="text")
+
+lower_ci_class <- raster(here('data/trend/All_marine_chi_lower_ci_convert.tif'))
+#plot(lower_ci_class, axes=FALSE)
+
+## combine
+s <- stack(raster(here('data/trend/All_marine_chi_upper_ci_convert.tif')),
+           raster(here('data/trend/All_marine_chi_lower_ci_convert.tif')))
+
+overlay(s, fun=function(x,y){x + y}, 
+                    filename = here('data/trend/All_marine_trend_pattern.tif'), overwrite=TRUE, progress="text")
+trend_pattern <- raster(here('data/trend/All_marine_trend_pattern.tif'))
+#plot(trend_pattern, axes=FALSE)
+
+### trend overlay
+
+df <- data.frame(id=c(2, 0, -2), v=c(NA, 1, NA))
+subs(trend_pattern, df, filename = here('data/trend/All_marine_sig_overlay.tif'), overwrite=TRUE, progress="text")
+
+```
+
