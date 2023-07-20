@@ -1,4 +1,4 @@
-# Adams et al. 2023 Multiple-use protected areas: critical to equitable and effective conservation
+# Multiple-use protected areas: critical to equitable and effective conservation
 
 This repository accompanies the peer-reviewed publication Adams et al. (2023) Multiple-use protected areas: critical to equitable and effective conservation published in One Earth.
 
