@@ -9,6 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Libraries
+
 ```{r}
 library(tmap)
 library(tidyverse)
@@ -18,19 +20,23 @@ library(here)
 library(biscale)
 ```
 
+# World map
 ```{r}
 data("World")
 world_spdf <- as(World, "Spatial")
 ```
 
+# Climate velocity output data
+
 ```{r}
-dat<-st_read(here("data/climate_velocity/WDPA_marine_climate_velocity.shp")) 
+dat<-st_read(here("output_data/Climate_velocity/WDPA_marine_climate_velocity.shp")) 
 
 dat<-dat %>% 
   rename(area_m2 = are_km2) %>% 
   mutate(area_km2 = area_m2* 1e-6) %>% 
   dplyr::select(WDPAID, PA_DEF, NAME, IUCN_CA, MARINE, STATUS, STATUS_, ClmVl__, area_km2)
 ```
+# Checked some PAs manually
 
 ```{r}
 test<-dat %>% 
@@ -39,13 +45,14 @@ test<-dat %>%
 test2<-dat %>% 
   filter(is.na(ClmVl__) == F)
 
-st_write(test, here("data/climate_velocity/Check_PAs.shp"), delete_layer = T)
+st_write(test, here("output_data/Climate_velocity/Check_PAs.shp"), delete_layer = T)
 
 dat_narm<-dat %>% 
   filter(is.na(ClmVl__) == F) %>% 
   mutate(Clim_abs = abs(ClmVl__))
 ```
 
+# Add classes for bivariate plot
 ```{r}
 dat2<-bi_class(dat_narm, x = Clim_abs, y = area_km2, style = "quantile", dim = 3)
 ```
