@@ -12,6 +12,29 @@ Once the raw data is saved within the directories raw_data folder, the three ana
 
 ## Trends in human impact
 
+### Marine impact trends
+
+1. Download_stressor_impacts.Rmd
+
+This script downloads the necessary abatable impact data from the KNB data repository
+
+2. Abatable_cumulative_impact.Rmd
+
+This script calculates the cumulative impact of abatable stressors each year from 2003-2013
+
+3. Trend_within_PAs.Rmd
+4. Trend_within_PAs_IUCN
+
+### Terrestrial human impact trends
+
+1. Trend_HFP.Rmd
+2. Trend_within_PAs_IUCN_HFP.RmD
+3. Trend_within_PAs_ISO3.Rmd
+4. CHI_timeseries_figures.Rmd
+5. CHI_ISO3_figures.Rmd
+
+
+
 ## Climate velocity
 
 1. clim_velocity.Rmd
