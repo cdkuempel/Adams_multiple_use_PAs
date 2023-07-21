@@ -3,7 +3,7 @@
 .RData
 .Ruserdata
 
-output_data/Climate_velocity
+output_data/
 
 raw_data/Climate_velocity/HadISST_sst.nc
 raw_data/Climate_velocity/SST_????.tif

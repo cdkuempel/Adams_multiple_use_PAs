@@ -29,7 +29,7 @@ library(RColorBrewer)
 ## IUCN Category: CHI
 
 ```{r}
-chi <- list.files(here("data/hfp/projected/"), full=TRUE,
+chi <- list.files(here("output_data/hfp/projected/"), full=TRUE,
                   pattern="Proj")
 
 
@@ -37,7 +37,7 @@ chi_stack <- stack(chi)
 ```
 
 ```{r}
-trend <- raster(here("data/trend/All_terrestrial_chi_slope.tif"))
+trend <- raster(here("data/trend/All_terrestrial_hfp_slope.tif"))
 ```
 
 
@@ -69,7 +69,7 @@ for(i in 1:length(iucn)){
   
   wdpa_ras<-fasterize::fasterize(wdpa_diss, chi_stack[[1]])
   
-  writeRaster(wdpa_ras, here(paste0("data/wdpa/iucn/",iucn[i],"_hfp_raster.tif")), overwrite = T)
+  writeRaster(wdpa_ras, here(paste0("outout_data/WDPA/iucn/",iucn[i],"_hfp_raster.tif")), overwrite = T)
   
   chi_data <- zonal(chi_stack, wdpa_ras, fun="mean", progress="text", na.rm=TRUE)
 
@@ -108,8 +108,8 @@ all<-all %>%
 all_trend<-all_trend %>% 
   mutate(pressure = "hfp_trend")
 
-write.csv(all, here("data/paper/IUCN_hfp.csv"))
-write.csv(all_trend, here("data/paper/IUCN_hfp_trend.csv"))
+write.csv(all, here("output_data/results/IUCN_hfp.csv"))
+write.csv(all_trend, here("output_data/results/IUCN_hfp_trend.csv"))
 ```
 
 
@@ -141,7 +141,7 @@ for(i in 2:length(strict)){
   
   wdpa_ras<-fasterize::fasterize(wdpa_diss, chi_stack[[1]])
   
-  writeRaster(wdpa_ras, here(paste0("data/wdpa/iucn/",strict[i],"_hfp_raster.tif")), overwrite = T)
+  writeRaster(wdpa_ras, here(paste0("output_data/WDPA/iucn/",strict[i],"_hfp_raster.tif")), overwrite = T)
   
   chi_data <- zonal(chi_stack, wdpa_ras, fun="mean", progress="text", na.rm=TRUE)
 
@@ -168,8 +168,8 @@ all_trend<-rbind(all_trend, trend_data_df)
 
 
 ```{r}
-write.csv(all, here("data/paper/Strict_cat_IUCN_hfp.csv"))
-write.csv(all_trend, here("data/paper/Strict_cat_IUCN_hfp_trend.csv"))
+write.csv(all, here("output_data/results/Strict_cat_IUCN_hfp.csv"))
+write.csv(all_trend, here("outout_data/results/Strict_cat_IUCN_hfp_trend.csv"))
 ```
 
 
@@ -177,7 +177,7 @@ write.csv(all_trend, here("data/paper/Strict_cat_IUCN_hfp_trend.csv"))
 # Country results
 
 ```{r}
-eez<-st_read(here("data/eez_simple.shp")) %>% 
+eez<-st_read(here("raw_data/Boundaries/eez_simple.shp")) %>% 
   st_transform(., crs = st_crs(wdpa))
 
 
@@ -192,10 +192,10 @@ eez_ras<-fasterize::fasterize(eez_diss, chi_stack[[1]], field = "id")
 ```
 
 ```{r}
-all_wdpa_ras<-raster(here("data/wdpa/WDPA_All_terrestrial_raster.tif"))
-wdpa_strict<-raster(here("data/wdpa/iucn/Strict_hfp_raster.tif"))
-wdpa_not_strict<-raster(here("data/wdpa/iucn/Not_strict_hfp_raster.tif"))
-wdpa_other<-raster(here("data/wdpa/iucn/Other_hfp_raster.tif"))
+all_wdpa_ras<-raster(here("output_data/WDPA/WDPA_All_terrestrial_raster.tif"))
+wdpa_strict<-raster(here("output_data/WDPA/iucn/Strict_hfp_raster.tif"))
+wdpa_not_strict<-raster(here("output_data/WDPA/iucn/Not_strict_hfp_raster.tif"))
+wdpa_other<-raster(here("output_data/WDPA/iucn/Other_hfp_raster.tif"))
 ```
 
 ```{r}
@@ -257,9 +257,9 @@ all_chi_eez<-full_join(eez_diss, all_chi2, by = "id")
 all_chi_eez_df<-as.data.frame(all_chi_eez) %>% 
   dplyr::select(-geometry)
 
-write.csv(all_chi_eez_df, here("data/paper/Country_hfp_results.csv"))
+write.csv(all_chi_eez_df, here("output_data/results/Country_hfp_results.csv"))
 
-st_write(all_chi_eez, here("data/paper/Country_hfp_results.shp"), delete_layer = TRUE)
+st_write(all_chi_eez, here("output_data/results/Country_hfp_results.shp"), delete_layer = TRUE)
 ```
 
 
@@ -307,9 +307,9 @@ all_chi_trend_eez<-full_join(eez_diss, all_chi_trend2, by = "id")
 all_chi_trend_eez_df<-as.data.frame(all_chi_trend_eez) %>% 
   dplyr::select(-geometry)
 
-write.csv(all_chi_trend_eez_df, here("data/paper/Country_hfp_trend_results.csv"))
+write.csv(all_chi_trend_eez_df, here("output_data/results/Country_hfp_trend_results.csv"))
 
-st_write(all_chi_trend_eez, here("data/paper/Country_hfp_trend_results.shp"), delete_layer = TRUE)
+st_write(all_chi_trend_eez, here("output_data/results/Country_hfp_trend_results.shp"), delete_layer = TRUE)
 ```
 
 
